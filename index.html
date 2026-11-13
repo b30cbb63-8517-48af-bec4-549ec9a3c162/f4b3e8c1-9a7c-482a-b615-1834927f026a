@@ -92,6 +92,35 @@ a{color:var(--ac)}
   <div class="row2"><span>Retrait de la terre (%)</span><input type="number" id="shr" min="0" max="40" step="0.5" value="0"></div>
   <div class="row2"><select id="tdim"></select><input type="number" id="tval" min="0.1" step="0.5" placeholder="finale (cm)"><button id="tapply">Appliquer</button></div>
   <select id="mode"><option value="one">Tenir sur une seule page A4 (réduit si besoin)</option><option value="multi">Taille réelle : découper sur plusieurs pages A4</option></select>
+  <h2 style="margin-top:14px">Décor (lignes organiques)</h2>
+  <label class="c"><input type="checkbox" id="dec_on"> Projeter un décor sur les gabarits</label>
+  <select id="dec_type"><option value="nuages_asia">Nuages asiatiques (volutes)</option><option value="vagues">Vagues</option><option value="nuages">Nuages (bosses)</option><option value="seigaiha">Vagues japonaises (seigaiha)</option><option value="rides">Cercles organiques (ondes)</option><option value="herbes">Herbes</option><option value="spirales">Spirales</option></select>
+  <select id="dec_cstyle"><option value="mixte">Style des nuages : mixte (varié)</option><option value="classique">Classique à volutes</option><option value="ruban">Ruban à longue queue</option><option value="tourbillon">Tourbillon</option><option value="cumulus">Cumulus à lignes</option><option value="double">Double contour</option></select>
+  <div class="row"><span>Densité</span><input type="range" id="dec_den" min="1" max="10" step="1" value="5"><output></output></div>
+  <div class="row"><span>Taille</span><input type="range" id="dec_size" min="1" max="10" step="1" value="5"><output></output></div>
+  <div class="row"><span>Angle</span><input type="range" id="dec_ang" min="0" max="180" step="5" value="0"><output></output></div>
+  <div class="row"><span>Trait</span><input type="range" id="dec_w" min="0.2" max="1.5" step="0.1" value="0.5"><output></output></div>
+  <div class="row2"><input type="number" id="dec_seed" value="1" min="1" step="1"><button id="dec_new">Nouvelle variation</button></div>
+  <p class="s" style="margin:0 0 8px;font-size:.85rem">Le décor est tracé dans le plan du patron et découpé aux bords des pièces : tu peux le reproduire au crayon, à l’ébauchoir ou au sgraffite.</p>
+  <h2 style="margin-top:14px">Image projetée</h2>
+  <input type="file" id="img_file" accept="image/*">
+  <div id="img_ctl" style="display:none">
+   <label class="c"><input type="checkbox" id="img_on" checked> Afficher l’image sur les gabarits</label>
+   <select id="img_mode"><option value="place">Placer à un endroit</option><option value="fill">Étirer sur toute une pièce</option></select>
+   <div class="s" style="margin:4px 0 2px;font-size:.85rem">Pièce concernée (position en % de cette pièce, ou surface à remplir)</div>
+   <select id="img_piece"></select>
+   <div id="img_place">
+    <div class="row"><span>Position X</span><input type="range" id="img_x" min="0" max="100" step="1" value="50"><output></output></div>
+    <div class="row"><span>Position Y</span><input type="range" id="img_y" min="0" max="100" step="1" value="50"><output></output></div>
+    <div class="row"><span>Largeur</span><input type="range" id="img_w" min="1" max="40" step="0.5" value="6"><output></output></div>
+   </div>
+   <div id="img_fill" style="display:none"><label class="c"><input type="checkbox" id="img_keep"> Conserver les proportions (l’image couvre toute la pièce)</label></div>
+   <div class="row"><span>Rotation</span><input type="range" id="img_rot" min="0" max="360" step="5" value="0"><output></output></div>
+   <select id="img_proc"><option value="seuil">Noir et blanc (seuil)</option><option value="trame">Trame de points (photo)</option><option value="contours">Contours</option></select>
+   <div class="row"><span>Seuil</span><input type="range" id="img_thr" min="0" max="255" step="1" value="128"><output></output></div>
+   <label class="c"><input type="checkbox" id="img_inv"> Inverser noir / blanc</label>
+   <div class="btns"><button id="img_clear">Retirer l’image</button></div>
+  </div>
   <div class="btns"><button class="p" id="pdf">Télécharger en PDF</button><button id="print">Imprimer le patron</button></div>
   <p class="s" style="margin-top:12px">Légende : trait plein = découper, pointillés = plier, languettes grises = à coller sous la face voisine.</p>
  </div>
@@ -305,6 +334,8 @@ function flat(){
  const ps=netPolys(),pts=ps.flatMap(p=>p.pts),xs=pts.map(p=>p[0]),ys=pts.map(p=>p[1]);
  const x0=Math.min(...xs),y0=Math.min(...ys),w=Math.max(...xs)-x0,h=Math.max(...ys)-y0,sc=Math.min(W*.85/w,H*.85/h),ox=(W-w*sc)/2-x0*sc,oy=(H-h*sc)/2-y0*sc;
  for(const p of ps){ctx.beginPath();p.pts.forEach((q,i)=>{const X=ox+q[0]*sc,Y=oy+q[1]*sc;i?ctx.lineTo(X,Y):ctx.moveTo(X,Y)});ctx.closePath();ctx.fillStyle=p.col;ctx.fill();ctx.lineWidth=2;ctx.strokeStyle='#333';ctx.stroke()}
+ {const im=imgPlace(ps,[x0,y0,x0+w,y0+h]);if(im){ctx.save();ctx.beginPath();for(const p of im.clip){p.pts.forEach((q,i)=>{const X=ox+q[0]*sc,Y=oy+q[1]*sc;i?ctx.lineTo(X,Y):ctx.moveTo(X,Y)});ctx.closePath()}ctx.clip('evenodd');ctx.translate(ox+im.cx*sc,oy+im.cy*sc);ctx.rotate(im.rot*Math.PI/180);ctx.drawImage(IMG.canvas,-im.w*sc/2,-im.h*sc/2,im.w*sc,im.h*sc);ctx.restore()}}
+ if($('dec_on').checked){ctx.strokeStyle='#222';ctx.lineWidth=1.2;for(const l of decor(ps)){ctx.beginPath();l.forEach((q,i)=>{const X=ox+q[0]*sc,Y=oy+q[1]*sc;i?ctx.lineTo(X,Y):ctx.moveTo(X,Y)});ctx.stroke()}}
 }
 function draw3d(){
  if(SH[shape].flat){flat();return}
@@ -553,6 +584,184 @@ function netPolys(){
  }
  return polys;
 }
+function rng(seed){let a=seed>>>0;return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function inPoly(p,pts){let c=false;for(let i=0,j=pts.length-1;i<pts.length;j=i++){const a=pts[i],b=pts[j];if((a[1]>p[1])!==(b[1]>p[1])&&p[0]<(b[0]-a[0])*(p[1]-a[1])/(b[1]-a[1])+a[0])c=!c}return c}
+function cloudAsia(rnd,style){
+ const PI=Math.PI,ST=['classique','ruban','tourbillon','cumulus','double'],R=(a,b)=>a+(b-a)*rnd();
+ if(style==='mixte')style=ST[Math.floor(rnd()*ST.length)];
+ let k,rs,ov=R(.6,.85);
+ if(style==='tourbillon'){k=3;rs=[R(.07,.11),R(.22,.28),R(.09,.14)];if(rnd()<.5)rs.reverse()}
+ else if(style==='cumulus'){k=4+Math.floor(rnd()*3);rs=Array.from({length:k},()=>R(.09,.14));ov=R(.8,.95)}
+ else if(style==='ruban'){k=2+Math.floor(rnd()*2);rs=Array.from({length:k},()=>R(.1,.18))}
+ else{k=2+Math.floor(rnd()*4);rs=Array.from({length:k},()=>R(.07,.19));rs[Math.floor(rnd()*k)]*=1.25}
+ const cx=[0];for(let i=1;i<k;i++)cx.push(cx[i-1]+ov*(rs[i-1]+rs[i]));
+ const xm=(cx[0]-rs[0]+cx[k-1]+rs[k-1])/2;for(let i=0;i<k;i++)cx[i]-=xm;
+ const cy=rs.map(r=>-r*.85),xl=cx[0]-rs[0],xr=cx[k-1]+rs[k-1],top=[];
+ for(let x=xl;x<=xr+1e-9;x+=.004){let y=1e9;for(let i=0;i<k;i++){const d=rs[i]*rs[i]-(x-cx[i])**2;if(d>=0)y=Math.min(y,cy[i]-Math.sqrt(d))}if(y<1e8)top.push([x,y])}
+ const tail=(U,Lw,dir,Lt,ud,wave)=>{
+  const M=[(U[0]+Lw[0])/2,(U[1]+Lw[1])/2],w0=Math.hypot(U[0]-Lw[0],U[1]-Lw[1])/2,c=[];
+  for(let t=0;t<=1.0001;t+=.03){
+   const curl=dir<0?.18*Lt*Math.sin(PI*t)-.9*Lt*Math.max(0,t-.6)**2*ud:-.5*Lt*Math.pow(t,2.2)*ud;
+   c.push([M[0]+dir*Lt*t,M[1]+curl+wave*Lt*.14*Math.sin(2*PI*1.4*t)*t]);
+  }
+  const up=[],lo=[];c.forEach((q,i)=>{const a=c[Math.max(0,i-1)],b=c[Math.min(c.length-1,i+1)],tx=b[0]-a[0],ty=b[1]-a[1],l=Math.hypot(tx,ty)||1,nx=-ty/l,ny=tx/l,hw=w0*Math.pow(1-i/(c.length-1),.9);
+   up.push([q[0]+nx*hw*-dir,q[1]+ny*hw*-dir]);lo.push([q[0]-nx*hw*-dir,q[1]-ny*hw*-dir])});
+  return {up,lo,tip:c[c.length-1]};
+ };
+ const pL=style==='cumulus'?0:style==='ruban'?.5:style==='tourbillon'?.5:.85,pR=style==='cumulus'?0:style==='ruban'?1:style==='tourbillon'?.5:.85;
+ const hasL=rnd()<pL,hasR=rnd()<pR,wave=style==='ruban'?1:0;
+ const UL=top[0],UR=top[top.length-1],LL=[cx[0]-.45*rs[0],0],LR=[cx[k-1]+.45*rs[k-1],0];
+ const tl=hasL?tail(UL,LL,-1,style==='ruban'?R(.08,.16):style==='tourbillon'?R(.07,.13):R(.1,.3),rnd()<.75?1:-1,0):null;
+ const tr=hasR?tail(UR,LR,1,style==='ruban'?R(.45,.75):style==='tourbillon'?R(.07,.14):R(.12,.34),rnd()<.7?1:-1,wave):null;
+ const arc=(c,r,a0,a1)=>{const o=[];for(let a=a0;a<=a1+1e-9;a+=PI/24)o.push([c[0]+r*Math.cos(a),c[1]+r*Math.sin(a)]);return o};
+ const bl=hasL?LL:[cx[0],cy[0]+rs[0]],br=hasR?LR:[cx[k-1],cy[k-1]+rs[k-1]],nb=2+Math.floor(rnd()*4),base=[];
+ for(let u=0;u<=1.0001;u+=.02)base.push([br[0]+(bl[0]-br[0])*u,br[1]+(bl[1]-br[1])*u+.03*Math.abs(Math.sin(u*nb*PI))]);
+ const leftC=hasL?tl.up.slice().reverse():arc([cx[0],cy[0]],rs[0],PI/2,PI);
+ const rightC=hasR?[...tr.up,...tr.lo.slice().reverse()]:arc([cx[k-1],cy[k-1]],rs[k-1],0,PI/2).reverse();
+ const out=[...leftC,...top,...rightC,...base,...(hasL?tl.lo:[])],L=[out];
+ const spiral=(c,r0,turns,dir,a0)=>{const l=[];for(let a=0;a<=turns*2*PI;a+=.15){const q=r0*(1-.93*a/(turns*2*PI));l.push([c[0]+q*Math.cos(dir*a+a0),c[1]+q*Math.sin(dir*a+a0)])}return l};
+ const order=rs.map((r,i)=>[r,i]).sort((a,b)=>b[0]-a[0]).filter(a=>a[0]>=.085);
+ let ns=style==='cumulus'?(rnd()<.3?1:0):style==='tourbillon'?1+(rnd()<.5?1:0):style==='ruban'?1+(rnd()<.4?1:0):1+Math.floor(rnd()*3);
+ order.slice(0,ns).forEach(([r,i],j)=>{
+  const big=style==='tourbillon'&&j===0;
+  L.push(spiral([cx[i]+(rnd()-.5)*.02,cy[i]+.08*r],r*(big?.8:R(.5,.68)),big?R(2,2.6):R(1.2,1.9),rnd()<.5?1:-1,PI*.6+rnd()*1.5));
+ });
+ if(style==='cumulus'||style==='double'||rnd()<.25)rs.forEach((r,i)=>{if(r>=.09&&rnd()<(style==='cumulus'?.9:.5)){const n=style==='cumulus'?1+Math.floor(rnd()*2):1;for(let j=0;j<n;j++)L.push(arc([cx[i],cy[i]],r*(.78-.22*j),PI*1.08,PI*1.92))}});
+ if(style==='ruban'&&hasR&&rnd()<.85)L.push(spiral([tr.tip[0]-.02,tr.tip[1]-.035],R(.035,.06),R(1.3,1.8),rnd()<.5?1:-1,rnd()*6));
+ if(style==='double'){const sx=out.reduce((a,q)=>a+q[0],0)/out.length,sy=out.reduce((a,q)=>a+q[1],0)/out.length;L.push(out.map(q=>[sx+(q[0]-sx)*.9,sy+(q[1]-sy)*.84]))}
+ return L;
+}
+function genDecor(B,inside){
+ const type=$('dec_type').value,den=+$('dec_den').value||5,sz=+$('dec_size').value||5,ang=(+$('dec_ang').value||0)*Math.PI/180,rnd=rng(+$('dec_seed').value||1);
+ const PI=Math.PI,w=B[2]-B[0],h=B[3]-B[1],cx=(B[0]+B[2])/2,cy=(B[1]+B[3])/2,rad=Math.hypot(w,h)/2+10,sp=Math.max(1.6,34/den),L=[];
+ const rot=(x,y)=>[cx+x*Math.cos(ang)-y*Math.sin(ang),cy+x*Math.sin(ang)+y*Math.cos(ang)];
+ const pt=()=>{let q;for(let t=0;t<80;t++){q=[B[0]+rnd()*w,B[1]+rnd()*h];if(inside(q))break}return q};
+ if(type==='vagues'){
+  const A=sz*1.2,lam=sz*7+10;
+  for(let y=-rad;y<=rad;y+=sp){const Aj=A*(.6+.8*rnd()),lj=lam*(.8+.4*rnd()),p1=rnd()*2*PI,p2=rnd()*2*PI,l=[];
+   for(let x=-rad;x<=rad;x+=2)l.push(rot(x,y+Aj*Math.sin(2*PI*x/lj+p1)+.45*A*Math.sin(2*PI*x/(lj*2.7)+p2)));L.push(l)}
+ }else if(type==='nuages_asia'){
+  const n=Math.max(1,Math.round(den*w*h/60000)+1),cw0=sz*9+30,placed=[];
+  for(let i=0;i<n;i++){
+   const c=cloudAsia(rnd,$('dec_cstyle').value),fl=c.flat(),xs=fl.map(q=>q[0]),ys=fl.map(q=>q[1]),x0=Math.min(...xs),x1=Math.max(...xs),y0=Math.min(...ys),y1=Math.max(...ys),flip=rnd()<.5?-1:1,probe=c[0].filter((_,j)=>j%6===0);
+   let sc=cw0/(x1-x0),pos,T,free=false;
+   for(let t=0;t<40;t++){
+    pos=pt();T=q=>[pos[0]+flip*(q[0]-(x0+x1)/2)*sc,pos[1]+(q[1]-(y0+y1)/2)*sc];
+    free=placed.every(o=>Math.hypot(o[0]-pos[0],o[1]-pos[1])>(o[2]+sc*(x1-x0)/2)*.75);
+    if(free&&probe.every(q=>inside(T(q))))break;
+    sc*=.96;
+   }
+   if(!free)continue;
+   placed.push([pos[0],pos[1],sc*(x1-x0)/2]);
+   c.forEach(l=>L.push(l.map(T)));
+  }
+ }else if(type==='nuages'){
+  const n=Math.max(2,Math.round(den*w*h/18000)),cw0=sz*7+22;
+  for(let i=0;i<n;i++){
+   const [x0,y0]=pt(),cw=cw0*(.7+.6*rnd()),k=3+Math.floor(rnd()*3),rs=Array.from({length:k},()=>.75+.5*rnd()),tot=rs.reduce((a,b)=>a+b,0),l=[];let x=x0-cw/2;
+   for(let j=0;j<k;j++){const r=rs[j]/tot*cw/2,cj=x+r;x+=2*r;for(let a=PI;a<=2*PI+1e-6;a+=PI/10)l.push([cj+r*Math.cos(a),y0+r*Math.sin(a)])}
+   for(let t=1;t>=0;t-=.1)l.push([x0-cw/2+(x-(x0-cw/2))*t,y0+Math.sin(t*PI)*cw*.03]);
+   L.push(l);
+  }
+ }else if(type==='seigaiha'){
+  const rr=sz*2.2+7,sc=[];let row=0;
+  for(let y=B[1]-rr;y<=B[3]+rr;y+=rr/2,row++)for(let x=B[0]-rr+(row%2?rr:0);x<=B[2]+rr;x+=2*rr)sc.push([x,y]);
+  sc.forEach(([x,y],i)=>{for(let m=1;m<=4;m++){const r=rr*m/4;let cur=[];
+   for(let a=PI;a<=2*PI+1e-6;a+=PI/24){
+    const p=[x+r*Math.cos(a),y+r*Math.sin(a)];let hid=false;
+    for(let j=i+1;j<sc.length&&sc[j][1]<=y+rr;j++){const q=sc[j];if(Math.abs(q[0]-x)<=2*rr&&p[1]<=q[1]&&(p[0]-q[0])**2+(p[1]-q[1])**2<rr*rr){hid=true;break}}
+    if(hid){if(cur.length>1)L.push(cur);cur=[]}else cur.push(p)}
+   if(cur.length>1)L.push(cur)}});
+ }else if(type==='rides'){
+  const n=Math.max(1,Math.round(den*w*h/40000)+1);
+  for(let i=0;i<n;i++){const [x0,y0]=pt(),r0=sz*1.2+3,m=3+Math.floor(rnd()*4),p1=rnd()*6.28,p2=rnd()*6.28,gap=sz*1.1+3;
+   for(let k=0;k<m;k++){const r=r0+k*gap,l=[];for(let a=0;a<=2*PI+.001;a+=PI/36){const q=r*(1+.1*Math.sin(3*a+p1+k*.4)+.06*Math.sin(5*a+p2));l.push([x0+q*Math.cos(a),y0+q*Math.sin(a)])}L.push(l)}}
+ }else if(type==='herbes'){
+  const n=Math.round(den*w/6)+3;
+  for(let i=0;i<n;i++){const x0=B[0]+rnd()*w,ht=h*(.15+.5*rnd())*(.4+sz/8),lean=(rnd()-.5)*sz*8,l=[];
+   for(let t=0;t<=1.001;t+=.05)l.push([x0+lean*t*t+Math.sin(t*5+i)*1.2,B[3]-ht*t]);L.push(l)}
+ }else{
+  const n=Math.max(1,Math.round(den*w*h/45000)+1);
+  for(let i=0;i<n;i++){const [x0,y0]=pt(),tr=2+rnd()*1.5,rmax=sz*2.5+8,dir=rnd()<.5?1:-1,ph=rnd()*6.28,l=[];
+   for(let a=0;a<=tr*2*PI;a+=.15){const r=rmax*a/(tr*2*PI)*(1+.05*Math.sin(a*3));l.push([x0+r*Math.cos(dir*a+ph),y0+r*Math.sin(dir*a+ph)])}L.push(l)}
+ }
+ return L;
+}
+function decor(polys){
+ const pts=polys.flatMap(p=>p.pts),B=[Math.min(...pts.map(q=>q[0])),Math.min(...pts.map(q=>q[1])),Math.max(...pts.map(q=>q[0])),Math.max(...pts.map(q=>q[1]))];
+ const bb=p=>{const xs=p.pts.map(q=>q[0]),ys=p.pts.map(q=>q[1]);return {p,x0:Math.min(...xs),x1:Math.max(...xs),y0:Math.min(...ys),y1:Math.max(...ys)}};
+ const solid=polys.filter(p=>p.col!==FL&&p.col!=='#fff').map(bb),holes=polys.filter(p=>p.col==='#fff').map(bb),all=[...solid,...holes],out=[];
+ const inAny=(arr,m)=>arr.some(o=>m[0]>=o.x0&&m[0]<=o.x1&&m[1]>=o.y0&&m[1]<=o.y1&&inPoly(m,o.p.pts));
+ for(const Ln of genDecor(B,m=>inAny(solid,m)&&!inAny(holes,m))){
+  let cur=null;
+  for(let i=0;i<Ln.length-1;i++){
+   const a=Ln[i],b=Ln[i+1],sx0=Math.min(a[0],b[0]),sx1=Math.max(a[0],b[0]),sy0=Math.min(a[1],b[1]),sy1=Math.max(a[1],b[1]),ts=[0,1];
+   for(const o of all){
+    if(o.x1<sx0||o.x0>sx1||o.y1<sy0||o.y0>sy1)continue;
+    const q=o.p.pts;
+    for(let k=0;k<q.length;k++){
+     const c=q[k],d=q[(k+1)%q.length],r=[b[0]-a[0],b[1]-a[1]],s2=[d[0]-c[0],d[1]-c[1]],den=r[0]*s2[1]-r[1]*s2[0];
+     if(Math.abs(den)<1e-12)continue;
+     const t=((c[0]-a[0])*s2[1]-(c[1]-a[1])*s2[0])/den,u=((c[0]-a[0])*r[1]-(c[1]-a[1])*r[0])/den;
+     if(t>1e-9&&t<1-1e-9&&u>=0&&u<=1)ts.push(t);
+    }
+   }
+   ts.sort((x,y)=>x-y);
+   for(let k=0;k<ts.length-1;k++){
+    const t0=ts[k],t1=ts[k+1];if(t1-t0<1e-9)continue;
+    const tm=(t0+t1)/2,m=[a[0]+(b[0]-a[0])*tm,a[1]+(b[1]-a[1])*tm];
+    if(inAny(solid,m)&&!inAny(holes,m)){
+     const p0=[a[0]+(b[0]-a[0])*t0,a[1]+(b[1]-a[1])*t0],p1=[a[0]+(b[0]-a[0])*t1,a[1]+(b[1]-a[1])*t1];
+     if(!cur)cur=[p0];cur.push(p1);
+    }else{if(cur&&cur.length>1)out.push(cur);cur=null}
+   }
+  }
+  if(cur&&cur.length>1)out.push(cur);
+ }
+ return out;
+}
+let IMG=null,IMGSRC=null;
+function procImage(){
+ if(!IMGSRC)return;
+ const k=Math.min(1,480/Math.max(IMGSRC.width,IMGSRC.height)),w=Math.max(1,Math.round(IMGSRC.width*k)),h=Math.max(1,Math.round(IMGSRC.height*k));
+ const c=document.createElement('canvas');c.width=w;c.height=h;const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,w,h);x.drawImage(IMGSRC,0,0,w,h);
+ const d=x.getImageData(0,0,w,h).data,g=new Float32Array(w*h);
+ for(let i=0;i<w*h;i++)g[i]=.299*d[4*i]+.587*d[4*i+1]+.114*d[4*i+2];
+ const thr=+$('img_thr').value,proc=$('img_proc').value,bw=new Uint8Array(w*h);
+ if(proc==='seuil')for(let i=0;i<w*h;i++)bw[i]=g[i]<thr?1:0;
+ else if(proc==='trame'){const a=Float32Array.from(g,v=>v+(128-thr)*.6);
+  for(let y=0;y<h;y++)for(let xx=0;xx<w;xx++){const i=y*w+xx,o=a[i],n=o<128?0:255,e=o-n;bw[i]=n===0?1:0;
+   if(xx+1<w)a[i+1]+=e*7/16;if(y+1<h){if(xx>0)a[i+w-1]+=e*3/16;a[i+w]+=e*5/16;if(xx+1<w)a[i+w+1]+=e/16}}}
+ else{const T=(255-thr)*1.2+20;
+  for(let y=1;y<h-1;y++)for(let xx=1;xx<w-1;xx++){const i=y*w+xx,gx=-g[i-w-1]-2*g[i-1]-g[i+w-1]+g[i-w+1]+2*g[i+1]+g[i+w+1],gy=-g[i-w-1]-2*g[i-w]-g[i-w+1]+g[i+w-1]+2*g[i+w]+g[i+w+1];bw[i]=Math.hypot(gx,gy)>T?1:0}}
+ if($('img_inv').checked)for(let i=0;i<bw.length;i++)bw[i]^=1;
+ const oc=document.createElement('canvas');oc.width=w;oc.height=h;const ox=oc.getContext('2d'),id=ox.createImageData(w,h);
+ for(let i=0;i<w*h;i++)id.data[4*i+3]=bw[i]?255:0;
+ ox.putImageData(id,0,0);
+ IMG={w,h,bw,canvas:oc,url:oc.toDataURL('image/png')};
+}
+function imgPlace(polys,B){
+ if(!IMG||!$('img_on').checked)return null;
+ const solid=polys.filter(p=>p.col!==FL&&p.col!=='#fff'),holes=polys.filter(p=>p.col==='#fff'),ar=IMG.h/IMG.w,rot=+$('img_rot').value||0;
+ const pc=solid[Math.min(solid.length-1,Math.max(0,+$('img_piece').value||0))];if(!pc)return null;
+ const xs=pc.pts.map(q=>q[0]),ys=pc.pts.map(q=>q[1]),x0=Math.min(...xs),x1=Math.max(...xs),y0=Math.min(...ys),y1=Math.max(...ys);
+ let r,clip;
+ if($('img_mode').value==='fill'){
+  const a=rot*Math.PI/180,c=Math.abs(Math.cos(a)),s2=Math.abs(Math.sin(a)),nw=(x1-x0)*c+(y1-y0)*s2,nh=(x1-x0)*s2+(y1-y0)*c;
+  let rw=nw,rh=nh;if($('img_keep').checked){const k=Math.max(nw/IMG.w,nh/IMG.h);rw=IMG.w*k;rh=IMG.h*k}
+  r=[(x0+x1)/2,(y0+y1)/2,rw,rh];clip=[pc,...holes.filter(hp=>inPoly(hp.pts[0],pc.pts))];
+ }else{
+  const w=(+$('img_w').value||6)*10;
+  r=[x0+(+$('img_x').value/100)*(x1-x0),y0+(+$('img_y').value/100)*(y1-y0),w,w*ar];clip=[...solid,...holes];
+ }
+ return {cx:r[0],cy:r[1],w:r[2],h:r[3],rot,clip};
+}
+function imgHex(){const {w,h,bw}=IMG,bpr=Math.ceil(w/8);let hx='';for(let y=0;y<h;y++)for(let b=0;b<bpr;b++){let v=0;for(let k=0;k<8;k++){const x=b*8+k;v=(v<<1)|(x<w?(bw[y*w+x]?0:1):1)}hx+=v.toString(16).padStart(2,'0')}return hx+'>'}
+function fillPieces(polys){
+ const sol=polys.filter(p=>p.col!==FL&&p.col!=='#fff'),sig=sol.length+sol.map(p=>p.label||'').join('|');
+ if(fillPieces.sig===sig)return;fillPieces.sig=sig;const cur=+$('img_piece').value||0;
+ $('img_piece').innerHTML=sol.map((p,i)=>`<option value="${i}">${i+1}. ${p.label||'Pièce'}</option>`).join('');if(cur<sol.length)$('img_piece').value=cur;
+}
 function geom(){
  const polys=netPolys(),pts=polys.flatMap(p=>p.pts),m=4;
  const xs=pts.map(p=>p[0]),ys=pts.map(p=>p[1]);
@@ -561,7 +770,7 @@ function geom(){
  for(const q of polys)q.pts.forEach((a,i)=>{
   const b=q.pts[(i+1)%q.pts.length],A=pk(a),B=pk(b),k=A<B?A+'|'+B:B+'|'+A,e=cnt.get(k)||{a,b,n:0};e.n++;cnt.set(k,e)});
  const folds=[],cuts=[];for(const e of cnt.values())(e.n>1?folds:cuts).push([e.a,e.b]);
- return {polys,folds,cuts,tx:m-x0,ty:m-y0,tw,th,labels:$('labels').checked};
+ return {polys,folds,cuts,tx:m-x0,ty:m-y0,tw,th,labels:$('labels').checked,dec:$('dec_on').checked?decor(polys):[],decW:+$('dec_w').value||.5,img:imgPlace(polys,[x0,y0,Math.max(...xs),Math.max(...ys)])};
 }
 function layout(g){
  const s0=Math.max(.05,(+$('scale').value||100)/100)/(1-Math.min(40,Math.max(0,+$('shr').value||0))/100),multi=$('mode').value==='multi',A=189,B=276;
@@ -574,10 +783,14 @@ function layout(g){
 const pat=id=>`<pattern id="${id}" width="2" height="2" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="2" height="2" fill="#fff"/><line x1="0" y1="0" x2="0" y2="2" stroke="#000" stroke-width="0.35"/></pattern>`;
 function net(){
  const g=geom(),L=layout(g),s=L.s,f2=v=>v.toFixed(2),ln=(a,b)=>`x1="${f2(a[0])}" y1="${f2(a[1])}" x2="${f2(b[0])}" y2="${f2(b[1])}"`;
+ fillPieces(g.polys);
  let t=`<g transform="translate(${g.tx},${g.ty})">`;
  for(const p of g.polys)t+=`<polygon points="${p.pts.map(q=>f2(q[0])+','+f2(q[1])).join(' ')}" fill="${p.col===FL?'url(#@@)':'#fff'}"/>`;
+ if(g.img){const i=g.img,d=i.clip.map(p=>'M'+p.pts.map(q=>f2(q[0])+' '+f2(q[1])).join('L')+'Z').join('');
+  t+=`<clipPath id="c@@"><path clip-rule="evenodd" d="${d}"/></clipPath><g clip-path="url(#c@@)"><image href="${IMG.url}" x="${f2(i.cx-i.w/2)}" y="${f2(i.cy-i.h/2)}" width="${f2(i.w)}" height="${f2(i.h)}" preserveAspectRatio="none" transform="rotate(${i.rot} ${f2(i.cx)} ${f2(i.cy)})"/></g>`}
  for(const [a,b] of g.folds)t+=`<line ${ln(a,b)} stroke="#000" stroke-width="0.4" stroke-dasharray="2 1.5"/>`;
  for(const [a,b] of g.cuts)t+=`<line ${ln(a,b)} stroke="#000" stroke-width="0.6"/>`;
+ for(const l of g.dec)t+=`<polyline points="${l.map(q=>f2(q[0])+','+f2(q[1])).join(' ')}" fill="none" stroke="#000" stroke-width="${g.decW}" stroke-linecap="round" stroke-linejoin="round"/>`;
  if(g.labels)for(const p of g.polys)if(p.label){
   const cx=p.pts.reduce((u,q)=>u+q[0],0)/p.pts.length,cy=p.pts.reduce((u,q)=>u+q[1],0)/p.pts.length;
   t+=`<text x="${f2(cx)}" y="${f2(cy)}" font-size="${p.fs}" text-anchor="middle" dominant-baseline="middle" fill="#000" font-family="sans-serif">${p.label}</text>`;
@@ -617,7 +830,14 @@ function pdfBytes(){
    let hs='';for(let c=x0-Math.max(...ys);c<=x1-Math.min(...ys);c+=d)hs+=`${x0.toFixed(2)} ${(x0-c).toFixed(2)} m ${x1.toFixed(2)} ${(x1-c).toFixed(2)} l `;
    t+=`q 1 g ${path} f ${path} W n 0 G 0.3 w ${hs}S Q\n`;
   }
+  if(g.img){
+   const I=g.img,c2=Math.cos(I.rot*Math.PI/180),s2=Math.sin(I.rot*Math.PI/180);
+   const Qn=(x,y)=>[(10+(x+g.tx)*s-ox)*K,(PH-(10+(y+g.ty)*s-oy))*K],Pp=(u,v)=>{const dx=(u-.5)*I.w,dy=(.5-v)*I.h;return Qn(I.cx+dx*c2-dy*s2,I.cy+dx*s2+dy*c2)};
+   const o0=Pp(0,0),o1=Pp(1,0),o2=Pp(0,1),cp=I.clip.map(p=>p.pts.map((q,i)=>`${Q(q[0],q[1])} ${i?'l':'m'}`).join(' ')+' h').join(' ');
+   t+=`q ${cp} W* n 0 g ${(o1[0]-o0[0]).toFixed(3)} ${(o1[1]-o0[1]).toFixed(3)} ${(o2[0]-o0[0]).toFixed(3)} ${(o2[1]-o0[1]).toFixed(3)} ${o0[0].toFixed(2)} ${o0[1].toFixed(2)} cm /Im1 Do Q\n`;
+  }
   t+=`0 0 0 RG ${lw(0.4)} w [${lw(2)} ${lw(1.5)}] 0 d\n${g.folds.map(seg).join('\n')}\n[] 0 d ${lw(0.6)} w\n${g.cuts.map(seg).join('\n')}\n`;
+  if(g.dec.length)t+=`0 G ${lw(g.decW)} w 1 J 1 j\n`+g.dec.map(l=>l.map((q,i)=>`${Q(q[0],q[1])} ${i?'l':'m'}`).join(' ')+' S').join('\n')+'\n0 J 0 j\n';
   if(g.labels)for(const p of g.polys)if(p.label){
    const sz=p.fs*s*K,tx=ascii(p.label),cx=p.pts.reduce((u,q)=>u+q[0],0)/p.pts.length,cy=p.pts.reduce((u,q)=>u+q[1],0)/p.pts.length;
    const [px,py]=Q(cx,cy).split(' ').map(Number);
@@ -628,14 +848,15 @@ function pdfBytes(){
   const foot=`Patron ${ascii(SH[shape].n)} : ${SH[shape].p.map(([k,l])=>ascii(l.split(' (')[0])+' '+P[k]).join(', ')} (cm) - echelle ${Math.round(s*100)} %`+(L.N>1?` - page ${r*L.cols+c+1}/${L.N} ${String.fromCharCode(65+r)}${c+1}`:'');
   return t+`BT /F1 8 Tf 0 g ${(10*K).toFixed(2)} ${(5*K).toFixed(2)} Td (${foot}) Tj ET\n`;
  };
- let out='%PDF-1.4\n';const off=[];
+ let out='%PDF-1.4\n';const off=[],hasImg=!!g.img,base=hasImg?5:4;
  const obj=t=>{off.push(out.length);out+=`${off.length} 0 obj\n${t}\nendobj\n`};
  obj('<</Type/Catalog/Pages 2 0 R>>');
- obj(`<</Type/Pages/Kids[${Array.from({length:L.N},(_,i)=>`${4+2*i} 0 R`).join(' ')}]/Count ${L.N}>>`);
+ obj(`<</Type/Pages/Kids[${Array.from({length:L.N},(_,i)=>`${base+2*i} 0 R`).join(' ')}]/Count ${L.N}>>`);
  obj('<</Type/Font/Subtype/Type1/BaseFont/Helvetica/Encoding/WinAnsiEncoding>>');
+ if(hasImg){const hx=imgHex();obj(`<</Type/XObject/Subtype/Image/Width ${IMG.w}/Height ${IMG.h}/ImageMask true/BitsPerComponent 1/Filter/ASCIIHexDecode/Length ${hx.length}>>\nstream\n${hx}\nendstream`)}
  for(let i=0;i<L.N;i++){
   const c=page(Math.floor(i/L.cols),i%L.cols);
-  obj(`<</Type/Page/Parent 2 0 R/MediaBox[0 0 ${(PW*K).toFixed(2)} ${(PH*K).toFixed(2)}]/Contents ${5+2*i} 0 R/Resources<</Font<</F1 3 0 R>>>>>>`);
+  obj(`<</Type/Page/Parent 2 0 R/MediaBox[0 0 ${(PW*K).toFixed(2)} ${(PH*K).toFixed(2)}]/Contents ${base+1+2*i} 0 R/Resources<</Font<</F1 3 0 R>>${hasImg?'/XObject<</Im1 4 0 R>>':''}>>>>`);
   obj(`<</Length ${c.length}>>\nstream\n${c}endstream`);
  }
  const xr=out.length;
@@ -659,6 +880,10 @@ $('scale').addEventListener('input',net);$('shr').addEventListener('input',net);
 $('tapply').addEventListener('click',()=>{const k=$('tdim').value,v=+$('tval').value;if(v>0&&P[k]>0){$('scale').value=Math.round(v/P[k]*1000)/10;net()}});
 $('cube').addEventListener('click',()=>{P.h=P.d=P.w;rows();upd()});
 $('pdf').addEventListener('click',savePdf);
+const updDec=()=>{$('dec_cstyle').style.display=$('dec_type').value==='nuages_asia'?'':'none';['dec_den','dec_size','dec_ang','dec_w'].forEach(i=>{$(i).nextElementSibling.textContent=$(i).value+(i==='dec_ang'?'°':i==='dec_w'?' mm':'')});net();if(SH[shape].flat)draw3d()};
+['dec_on','dec_type','dec_cstyle'].forEach(i=>$(i).addEventListener('change',updDec));
+['dec_den','dec_size','dec_ang','dec_w','dec_seed'].forEach(i=>$(i).addEventListener('input',updDec));
+$('dec_new').addEventListener('click',()=>{$('dec_seed').value=1+Math.floor(Math.random()*9999);updDec()});
 $('print').addEventListener('click',()=>window.print());
 const HOME=[
  ['vol','Volumes géométriques','Pavé, cylindre, cônes et pyramides tronquées, formes à facettes, tétraèdre.',['box','tcone','tetra']],
@@ -679,7 +904,19 @@ function thumbs(){
 }
 function route(){const a=location.hash==='#atelier';$('home').style.display=a?'none':'';$('app').style.display=a?'':'none';window.scrollTo(0,0);if(a)draw3d()}
 addEventListener('hashchange',route);
-fillShapes();rows();upd();thumbs();route();
+const updImg=()=>{
+ const fill=$('img_mode').value==='fill';$('img_place').style.display=fill?'none':'';$('img_fill').style.display=fill?'':'none';
+ [['img_x','%'],['img_y','%'],['img_w',' cm'],['img_rot','°'],['img_thr','']].forEach(([i,u])=>{$(i).nextElementSibling.textContent=$(i).value+u});
+ net();if(SH[shape].flat)draw3d();
+};
+$('img_file').addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;const fr=new FileReader();
+ fr.onload=()=>{const im=new Image();im.onload=()=>{IMGSRC=im;procImage();$('img_ctl').style.display='';$('img_on').checked=true;updImg()};im.src=fr.result};fr.readAsDataURL(f)});
+['img_on','img_mode','img_piece','img_keep'].forEach(i=>$(i).addEventListener('change',updImg));
+['img_x','img_y','img_w','img_rot'].forEach(i=>$(i).addEventListener('input',updImg));
+['img_proc','img_inv'].forEach(i=>$(i).addEventListener('change',()=>{procImage();updImg()}));
+$('img_thr').addEventListener('input',()=>{procImage();updImg()});
+$('img_clear').addEventListener('click',()=>{IMG=null;IMGSRC=null;$('img_ctl').style.display='none';$('img_file').value='';updImg()});
+fillShapes();rows();upd();thumbs();route();updDec();updImg();
 </script>
 </body>
 </html>
